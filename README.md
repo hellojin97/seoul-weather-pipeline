@@ -17,8 +17,11 @@ flowchart LR
             SVC["Service<br>postgres:5432"]
             PG["Pod postgres<br>(Deployment, postgres:16-alpine)"]
 
+            GRAF["Pod grafana<br>(Deployment, grafana/grafana)"]
+
             subgraph STORAGE["스토리지 — Pod 수명과 분리"]
                 PVC[("PVC postgres-data 1Gi")]
+                GPVC[("PVC grafana-data 1Gi")]
             end
         end
     end
@@ -28,6 +31,8 @@ flowchart LR
     JOB -->|"DB_HOST=postgres<br>(Service 이름 = 클러스터 내부 DNS)"| SVC
     SVC --> PG
     PG -->|"마운트 /var/lib/postgresql/data"| PVC
+    GRAF -->|"SQL 조회"| SVC
+    GRAF -->|"마운트 /var/lib/grafana"| GPVC
 ```
 
 - 테이블 2개(`weather`, `air_quality`)로 분리: 두 API의 갱신 주기가 달라(900초 / 3600초) 수집 시각(`collected_ts`)이 서로 다르기 때문.
@@ -59,6 +64,9 @@ kubectl create job --from=cronjob/weather-collector test-run
 # 7. 데이터 확인
 kubectl exec deploy/postgres -- psql -U postgres -d weather -c 'SELECT * FROM weather;'
 kubectl exec deploy/postgres -- psql -U postgres -d weather -c 'SELECT * FROM air_quality;'
+
+# 8. Grafana 대시보드 (admin/admin, 데이터소스 Host는 postgres:5432)
+kubectl port-forward svc/grafana 3000:3000   # 켜둔 채로 http://localhost:3000
 ```
 
 ## 로컬 개발 (k8s 없이)
@@ -87,4 +95,4 @@ docker run --rm -e DB_HOST=host.docker.internal -e DB_PASSWORD=devpw weather-col
 
 ## 다음 후보
 
-- 대시보드 (Grafana 등)로 시각화
+- 대시보드 JSON export + Grafana provisioning — 지금은 대시보드 정의가 Grafana PVC에만 있어서 클러스터를 지우면 같이 사라진다. "대시보드도 코드로" 만드는 단계.
