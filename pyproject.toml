@@ -1,0 +1,12 @@
+[project]
+name = "seoul-weather-pipeline"
+version = "0.1.0"
+description = "로컬 k8s(kind) 기반 서울 날씨/대기질 수집 파이프라인"
+readme = "README.md"
+authors = [
+    { name = "김현진", email = "ilhj1228@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "psycopg[binary]>=3.3.5",
+]

@@ -1,0 +1,23 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: weather-collector
+spec:
+  jobTemplate:
+    metadata:
+      name: weather-collector
+    spec:
+      template:
+        metadata: {}
+        spec:
+          containers:
+          - image: weather-collector:latest
+            name: weather-collector
+            resources: {}
+            env:
+              - name: DB_HOST
+                value: postgres # Service 이름
+            imagePullPolicy: Never
+          restartPolicy: OnFailure
+  schedule: '*/10 * * * *'
+status: {}
