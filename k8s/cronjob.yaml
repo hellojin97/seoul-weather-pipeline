@@ -17,6 +17,11 @@ spec:
             env:
               - name: DB_HOST
                 value: postgres # Service 이름
+              - name: DB_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    key: POSTGRES_PASSWORD
+                    name: postgres-credentials
             imagePullPolicy: Never
           restartPolicy: OnFailure
   schedule: '*/10 * * * *'

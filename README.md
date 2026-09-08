@@ -43,17 +43,20 @@ kind create cluster --name data
 docker build -t weather-collector .
 kind load docker-image weather-collector:latest --name data
 
-# 3. 배포
+# 3. DB 비밀번호 Secret 생성 (배포 전에 필수 — 없으면 Pod가 CreateContainerConfigError)
+kubectl create secret generic postgres-credentials --from-literal=POSTGRES_PASSWORD=devpw
+
+# 4. 배포
 kubectl apply -f k8s/
 
-# 4. 확인
+# 5. 확인
 kubectl get pods                # postgres Running, 10분마다 weather-collector-* Completed
 kubectl get pvc                 # postgres-data Bound
 
-# 5. 크론 안 기다리고 즉시 1회 실행
+# 6. 크론 안 기다리고 즉시 1회 실행
 kubectl create job --from=cronjob/weather-collector test-run
 
-# 6. 데이터 확인
+# 7. 데이터 확인
 kubectl exec deploy/postgres -- psql -U postgres -d weather -c 'SELECT * FROM weather;'
 kubectl exec deploy/postgres -- psql -U postgres -d weather -c 'SELECT * FROM air_quality;'
 ```
@@ -64,10 +67,10 @@ kubectl exec deploy/postgres -- psql -U postgres -d weather -c 'SELECT * FROM ai
 docker run -d --name pg -e POSTGRES_PASSWORD=devpw -e POSTGRES_DB=weather -p 5432:5432 postgres:16-alpine
 python3 -m venv .venv && source .venv/bin/activate
 pip install "psycopg[binary]"
-python3 collect.py                        # DB_HOST 미지정 시 localhost
+DB_PASSWORD=devpw python3 collect.py      # DB_HOST 미지정 시 localhost
 
 # 컨테이너로 실행할 땐 localhost가 안 통하므로:
-docker run --rm -e DB_HOST=host.docker.internal weather-collector
+docker run --rm -e DB_HOST=host.docker.internal -e DB_PASSWORD=devpw weather-collector
 ```
 
 ## 밟은 지뢰들
@@ -80,8 +83,8 @@ docker run --rm -e DB_HOST=host.docker.internal weather-collector
 - **DB Deployment는 `strategy: Recreate`** → 기본 RollingUpdate는 새/옛 Pod가 잠깐 같은 PVC를 동시에 잡아 Postgres 잠금 충돌로 배포가 멈춘다.
 - **Pod의 파일시스템은 Pod와 함께 사라진다** → DB 데이터는 PVC에. 볼륨 없이 띄운 데이터는 Pod 교체 시 증발.
 - **`NUMERIC(3,1)` 최대값은 99.9** → 미세먼지 심한 날 / 태풍 풍속에 overflow. 컬럼 폭은 극단값 기준으로.
+- **secretKeyRef의 세 필드는 역할이 다르다** → env의 `name`은 컨테이너가 받는 환경변수 이름(코드가 읽는 것), `secretKeyRef.name`은 Secret 리소스 이름, `secretKeyRef.key`는 Secret 안의 key. 셋을 헷갈리면 인증 실패 또는 `CreateContainerConfigError`.
 
 ## 다음 후보
 
-- 비밀번호 k8s Secret으로 이동 (지금은 로컬 개발용 평문)
 - 대시보드 (Grafana 등)로 시각화

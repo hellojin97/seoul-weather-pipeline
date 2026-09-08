@@ -36,7 +36,10 @@ spec:
         name: postgres
         env:
           - name: POSTGRES_PASSWORD
-            value: devpw
+            valueFrom:
+              secretKeyRef:
+                key: POSTGRES_PASSWORD
+                name: postgres-credentials
           - name: POSTGRES_DB
             value: weather
         # 그 디스크를 컨테이너의 이 경로에 꽂는다.

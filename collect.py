@@ -4,6 +4,7 @@ import os
 import psycopg
 
 db_host = os.environ.get('DB_HOST', 'localhost')
+db_password = os.environ.get('DB_PASSWORD', '')
 
 weather_response = urlopen('https://api.open-meteo.com/v1/forecast?latitude=37.57&longitude=126.98&current=temperature_2m,relative_humidity_2m,wind_speed_10m')
 air_quality_response = urlopen('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=37.57&longitude=126.98&current=pm10,pm2_5')
@@ -25,7 +26,7 @@ result_data = {
 
 
 # 스크립트 분리 예상하며, result_data 분산하지 않음. 데이터가 저렇게 발생한다는 것을 가정
-with psycopg.connect(f"host={db_host} dbname=weather user=postgres password=devpw") as conn:
+with psycopg.connect(f"host={db_host} dbname=weather user=postgres password={db_password}") as conn:
     with conn.cursor() as cur:
         # CREATE
         # 1) 날씨 테이블
