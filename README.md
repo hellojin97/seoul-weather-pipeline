@@ -93,6 +93,17 @@ docker run --rm -e DB_HOST=host.docker.internal -e DB_PASSWORD=devpw weather-col
 - **`NUMERIC(3,1)` 최대값은 99.9** → 미세먼지 심한 날 / 태풍 풍속에 overflow. 컬럼 폭은 극단값 기준으로.
 - **secretKeyRef의 세 필드는 역할이 다르다** → env의 `name`은 컨테이너가 받는 환경변수 이름(코드가 읽는 것), `secretKeyRef.name`은 Secret 리소스 이름, `secretKeyRef.key`는 Secret 안의 key. 셋을 헷갈리면 인증 실패 또는 `CreateContainerConfigError`.
 
+## Grafana provisioning
+
+대시보드와 데이터소스 정의는 `grafana/` 아래 파일이 원본이고, `k8s/grafana-config.yaml`(ConfigMap)로 Grafana에 주입된다. 대시보드를 수정하려면 UI가 아니라 `grafana/dashboards/seoul-weather.json`을 고치고 ConfigMap을 재생성해 apply:
+
+```bash
+kubectl create configmap grafana-dashboards --from-file=grafana/dashboards/ --dry-run=client -o yaml > /tmp/cm.yaml && kubectl apply -f /tmp/cm.yaml
+kubectl rollout restart deploy/grafana
+```
+
+DB 비밀번호는 provisioning 파일에 `$DB_PASSWORD` 자리표시자로만 존재하고, 실제 값은 Secret → 환경변수로 주입된다.
+
 ## 다음 후보
 
-- 대시보드 JSON export + Grafana provisioning — 지금은 대시보드 정의가 Grafana PVC에만 있어서 클러스터를 지우면 같이 사라진다. "대시보드도 코드로" 만드는 단계.
+- 백필(backfill) — 수집이 멈췄던 구간을 Open-Meteo 과거 데이터 API로 메꾸는 스크립트. ON CONFLICT 덕분에 겹쳐 넣어도 안전하다.
