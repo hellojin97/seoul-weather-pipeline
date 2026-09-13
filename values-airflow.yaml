@@ -1,0 +1,8 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/apache/airflow/main/chart/values.schema.json
+executor: KubernetesExecutor
+dags:
+  gitSync:
+    enabled: true
+    repo: https://github.com/hellojin97/seoul-weather-pipeline.git
+    branch: main
+    subPath: dags
